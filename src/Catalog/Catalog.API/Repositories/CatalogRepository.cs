@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace Catalog.API.Entities.Repositories
 {
-    public class ProductRepository : IProductRepository
+    public class CatalogRepository : ICatalogRepository
     {
         private readonly ICatalogContext _context;
 
-        public ProductRepository(ICatalogContext context)
+        public CatalogRepository(ICatalogContext context)
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }

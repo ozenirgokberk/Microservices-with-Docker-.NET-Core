@@ -2,12 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Catalog.API.Data;
-using Catalog.API.Data.Interfaces;
-using Catalog.API.Entities;
-using Catalog.API.Entities.Repositories;
-using Catalog.API.Entities.Repositories.Interfaces;
-using Catalog.API.Settings;
+using Basket.API.Data;
+using Basket.API.Data.Interfaces;
+using Basket.API.Repositories;
+using Basket.API.Repositories.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +13,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+using StackExchange.Redis;
 
-namespace Catalog.API
+namespace Basket.API
 {
     public class Startup
     {
@@ -32,19 +30,20 @@ namespace Catalog.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers();
-
-            services.Configure<CatalogDatabaseSettings>(Configuration.GetSection(nameof(CatalogDatabaseSettings)));
-
-            services.AddSingleton<ICatalogDatabaseSettings>(s => s.GetRequiredService<IOptions<CatalogDatabaseSettings>>().Value);
-
-            services.AddTransient<ICatalogContext, CatalogContext>();
-            services.AddTransient<ICatalogRepository, CatalogRepository>();
-
-            services.AddSwaggerGen(opt =>
-            {
-                opt.SwaggerDoc("v1", new OpenApiInfo { Title = "Catalog API", Version = "v1" });
+            services.AddSingleton<ConnectionMultiplexer>(s => {
+                var config = ConfigurationOptions.Parse(Configuration.GetConnectionString("Redis"),true);
+                return ConnectionMultiplexer.Connect(config);
             });
+
+            services.AddTransient<IBasketContext, BasketContext>();
+            services.AddTransient<IBasketRepository, BasketRepository>();
+
+            services.AddSwaggerGen(s =>
+            {
+                s.SwaggerDoc("v1", new OpenApiInfo { Title = "Basket API", Version = "v1" });
+            });
+
+            services.AddControllers();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -65,8 +64,9 @@ namespace Catalog.API
             });
 
             app.UseSwagger();
-            app.UseSwaggerUI(c=> {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "Catalog API V1");
+            app.UseSwaggerUI(s=>
+            {
+                s.SwaggerEndpoint("/swagger/v1/swagger.json", "Basket API V1");
             });
         }
     }
